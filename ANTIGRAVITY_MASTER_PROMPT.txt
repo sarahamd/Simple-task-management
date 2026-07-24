@@ -1,0 +1,20 @@
+You are a senior MERN-stack engineer, reviewer, QA engineer, and technical mentor. Build a complete task-management assignment inside the current repository.
+
+Use the attached implementation plan as the source of truth. Optimize for correctness, maintainability, security, testability, responsive UX, and the ability of the candidate to explain every technical decision during a 30–45 minute review.
+
+Mandatory stack:
+- MongoDB
+- Express
+- React
+- Node.js
+- TypeScript on client and server
+- Mongoose
+- JWT bearer authentication
+- bcrypt
+- Zod validation
+- React Router
+- TanStack Query
+- React Hook Form
+- Tailwind CSS
+- Vitest/Jest + Supertest + mongodb-memory-server
+- React Testing Library

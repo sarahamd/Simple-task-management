@@ -1,0 +1,206 @@
+{
+	"info": {
+		"_postman_id": "8f2a6d4b-91c2-4b7e-90a1-7c4d5e6f8a9b",
+		"name": "Task-Manager API Suite",
+		"description": "Postman Collection for MERN Task Manager API testing including Register, Login, Task CRUD, Search, Filters, Pagination, and Cross-User 404 Security Ownership isolation.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "GET Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register User A",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+									"pm.test('Token is returned', function () { pm.expect(jsonData.data.token).to.be.a('string'); });",
+									"pm.environment.set('tokenA', jsonData.data.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"User A\",\n  \"email\": \"usera@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+					},
+					"response": []
+				},
+				{
+					"name": "Register User B",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+									"pm.environment.set('tokenB', jsonData.data.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"User B\",\n  \"email\": \"userb@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+					},
+					"response": []
+				},
+				{
+					"name": "Login User A",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"usera@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "Create Task (User A)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.test('Task Created 201', function () { pm.response.to.have.status(201); });",
+									"pm.environment.set('taskId', jsonData.data._id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{tokenA}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"User A Critical Task\",\n  \"description\": \"Security ownership check task\",\n  \"status\": \"PENDING\",\n  \"priority\": \"HIGH\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/tasks", "host": ["{{baseUrl}}"], "path": ["api", "tasks"] }
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tasks (User A)",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{tokenA}}" }],
+						"url": { "raw": "{{baseUrl}}/api/tasks?search=Critical&status=PENDING", "host": ["{{baseUrl}}"], "path": ["api", "tasks"], "query": [{ "key": "search", "value": "Critical" }, { "key": "status", "value": "PENDING" }] }
+					},
+					"response": []
+				},
+				{
+					"name": "CRITICAL ATTACK: User B GET User A Task (Expect 404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 404 Not Found', function () { pm.response.to.have.status(404); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Authorization", "value": "Bearer {{tokenB}}" }],
+						"url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{taskId}}"] }
+					},
+					"response": []
+				},
+				{
+					"name": "CRITICAL ATTACK: User B PATCH User A Task (Expect 404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 404 Not Found', function () { pm.response.to.have.status(404); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{tokenB}}" }
+						],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Hacked Title\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{taskId}}"] }
+					},
+					"response": []
+				},
+				{
+					"name": "CRITICAL ATTACK: User B DELETE User A Task (Expect 404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 404 Not Found', function () { pm.response.to.have.status(404); });"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [{ "key": "Authorization", "value": "Bearer {{tokenB}}" }],
+						"url": { "raw": "{{baseUrl}}/api/tasks/{{taskId}}", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{taskId}}"] }
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
