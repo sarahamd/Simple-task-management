@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { Calendar, Edit3, Trash2, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { CalendarClock, Edit3, Trash2, CheckCircle2, Clock3, CircleDotDashed, Bell, ChevronUp, ChevronDown, Paperclip } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { TranslationKeys } from '../i18n/translations';
+import { useDescriptionOverflow } from '../hooks/useDescriptionOverflow';
 
 interface TaskCardProps {
   task: Task;
@@ -17,14 +18,14 @@ const statusConfig: Record<TaskStatus, { translationKey: TranslationKeys; bg: st
     bg: 'bg-amber-500/10',
     text: 'text-amber-600 dark:text-amber-400',
     border: 'border-amber-500/20',
-    icon: Clock,
+    icon: CircleDotDashed,
   },
   in_progress: {
     translationKey: 'statusInProgress',
     bg: 'bg-blue-500/10',
     text: 'text-blue-600 dark:text-blue-400',
     border: 'border-blue-500/20',
-    icon: AlertTriangle,
+    icon: Clock3,
   },
   done: {
     translationKey: 'statusCompleted',
@@ -43,20 +44,35 @@ const priorityConfig: Record<TaskPriority, { translationKey: TranslationKeys; bg
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onStatusToggle }) => {
   const { t, language } = useLanguage();
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const { descriptionRef, hasMoreContent } = useDescriptionOverflow(task.description || '', isDescriptionExpanded);
   const status = statusConfig[task.status] || statusConfig.todo;
   const priority = priorityConfig[task.priority] || priorityConfig.medium;
   const StatusIcon = status.icon;
 
   const formattedDate = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+    ? new Date(task.dueDate).toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : null;
+
+  const formattedReminder = task.reminderAt
+    ? new Date(task.reminderAt).toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
       })
     : null;
 
   return (
-    <div className="group bg-white dark:bg-slate-900/60 backdrop-blur-sm border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700/80 rounded-2xl p-3.5 sm:p-5 shadow-sm dark:shadow-lg transition duration-200 flex flex-col justify-between">
+    <article className="group min-w-0 overflow-hidden bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/70 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-xl hover:shadow-purple-900/5 transition duration-200 flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between gap-1.5 mb-2.5">
           <button
@@ -73,26 +89,53 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onSt
           </span>
         </div>
 
-        <h3 className={`text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 mb-1.5 leading-snug ${task.status === 'done' ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
+        <h3 className={`break-words [overflow-wrap:anywhere] text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 mb-1.5 leading-snug ${task.status === 'done' ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
           {task.title}
         </h3>
 
         {task.description && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 mb-3 leading-relaxed">
-            {task.description}
-          </p>
+          <div className="relative min-w-0 overflow-hidden mb-3">
+            <p ref={descriptionRef} className={`break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-xs text-slate-500 dark:text-slate-400 leading-relaxed ${isDescriptionExpanded ? 'max-h-40 overflow-y-auto overscroll-contain pe-2' : 'line-clamp-2'}`}>
+              {task.description}
+            </p>
+            {(hasMoreContent || isDescriptionExpanded) && (
+              <button
+                type="button"
+                onClick={() => setIsDescriptionExpanded((value) => !value)}
+                className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition cursor-pointer"
+                aria-label={isDescriptionExpanded ? t('showLess') : t('seeMore')}
+              >
+                <span>{isDescriptionExpanded ? t('showLess') : t('seeMore')}</span>
+                {isDescriptionExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2">
-        {formattedDate ? (
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>{formattedDate}</span>
-          </div>
-        ) : (
-          <span>{t('noDueDate')}</span>
-        )}
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-end justify-between gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-2">
+        <div className="space-y-1.5 min-w-0">
+          {formattedDate ? (
+            <div className="flex items-center gap-1.5">
+              <CalendarClock className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+              <span className="truncate"><span className="font-semibold">{t('dueLabel')}:</span> {formattedDate}</span>
+            </div>
+          ) : (
+            <span>{t('noDueDate')}</span>
+          )}
+          {formattedReminder && (
+            <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+              <Bell className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{formattedReminder}</span>
+            </div>
+          )}
+          {!!task.attachments?.length && (
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+              <Paperclip className="w-3.5 h-3.5 shrink-0" />
+              <span>{task.attachments.length} {t('attachmentsLabel').toLowerCase()}</span>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition duration-200">
           <button
@@ -113,6 +156,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onSt
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };

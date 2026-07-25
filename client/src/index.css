@@ -64,18 +64,22 @@ html.light select option,
 }
 
 /* Custom Webkit date picker indicator styling */
-input[type="date"] {
+input[type="date"],
+input[type="datetime-local"] {
   color-scheme: light;
 }
 
 html.dark input[type="date"],
-.dark input[type="date"] {
+.dark input[type="date"],
+html.dark input[type="datetime-local"],
+.dark input[type="datetime-local"] {
   color-scheme: dark;
   background-color: rgba(30, 41, 59, 0.7);
   color: #f8fafc;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   padding: 4px;
   border-radius: 8px;
@@ -83,18 +87,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 html.light input[type="date"]::-webkit-calendar-picker-indicator,
-.light input[type="date"]::-webkit-calendar-picker-indicator {
+.light input[type="date"]::-webkit-calendar-picker-indicator,
+html.light input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.light input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(0.25) sepia(1) saturate(5) hue-rotate(220deg);
 }
 
 html.dark input[type="date"]::-webkit-calendar-picker-indicator,
-.dark input[type="date"]::-webkit-calendar-picker-indicator {
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(0.9) brightness(1.2);
   background-color: rgba(99, 102, 241, 0.2);
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.85;
   transform: scale(1.1);
 }
-

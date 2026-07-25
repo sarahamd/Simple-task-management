@@ -54,10 +54,11 @@ export const DashboardPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async (formData: TaskFormData) => {
       const response = await api.post<ApiResponse<Task>>('/tasks', formData);
-      return response.data;
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
@@ -65,10 +66,11 @@ export const DashboardPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TaskFormData> }) => {
       const response = await api.patch<ApiResponse<Task>>(`/tasks/${id}`, data);
-      return response.data;
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
@@ -80,15 +82,43 @@ export const DashboardPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
   const handleCreateOrUpdate = async (formData: TaskFormData) => {
+    const payload: TaskFormData = {
+      title: formData.title,
+      description: formData.description,
+      status: formData.status,
+      priority: formData.priority,
+      dueDate: formData.dueDate,
+      reminderAt: formData.reminderAt || '',
+    };
+
+    let savedTask: Task;
     if (editingTask) {
-      await updateMutation.mutateAsync({ id: editingTask._id, data: formData });
+      savedTask = await updateMutation.mutateAsync({ id: editingTask._id, data: payload });
     } else {
-      await createMutation.mutateAsync(formData);
+      savedTask = await createMutation.mutateAsync(payload);
     }
+
+    if (formData.newAttachments?.length) {
+      const attachments = new FormData();
+      formData.newAttachments.forEach((file) => attachments.append('attachments', file));
+      await api.post(`/tasks/${savedTask._id}/attachments`, attachments, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    }
+  };
+
+  const handleRemoveAttachment = async (taskId: string, attachmentId: string) => {
+    const response = await api.delete<ApiResponse<Task>>(
+      `/tasks/${taskId}/attachments/${attachmentId}`
+    );
+    setEditingTask(response.data.data);
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
   const handleStatusToggle = async (task: Task) => {
@@ -130,7 +160,7 @@ export const DashboardPage: React.FC = () => {
   const hasActiveFilters = !!(search || status || priority || sortBy !== 'createdAt' || order !== 'desc');
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/60 dark:from-slate-950 dark:via-slate-950 dark:to-purple-950/20 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
@@ -229,7 +259,7 @@ export const DashboardPage: React.FC = () => {
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {tasks.map((task) => (
                 <TaskCard
                   key={task._id}
@@ -255,6 +285,7 @@ export const DashboardPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateOrUpdate}
         initialData={editingTask}
+        onRemoveAttachment={handleRemoveAttachment}
       />
 
       {/* Delete Confirmation Modal */}

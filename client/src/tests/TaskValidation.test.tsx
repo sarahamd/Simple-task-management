@@ -88,6 +88,13 @@ describe('Frontend Task Form & Field Validation', () => {
       />
     );
 
+    fireEvent.change(screen.getByPlaceholderText('e.g. Design Landing Page'), {
+      target: { value: 'Valid Title' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Add key details or acceptance criteria...'), {
+      target: { value: 'Valid Description' },
+    });
+
     const submitBtn = screen.getByRole('button', { name: /create task/i });
     fireEvent.click(submitBtn);
 

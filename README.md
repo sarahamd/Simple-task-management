@@ -24,6 +24,7 @@ Task Flow is a production-style full-stack Task Management application engineere
 - **React Error Boundary**: Top-level `ErrorBoundary` component catching unexpected UI runtime errors.
 - **Tailwind CSS**: Custom dark theme design system, glassmorphism card layouts, skeleton loaders, and responsive layouts down to 320px mobile viewports.
 - **Lucide Icons**: Clean UI iconography.
+- **Attachments**: Multipart file selection, owner-protected downloads, removal controls, and file validation.
 
 ---
 
@@ -78,11 +79,17 @@ task-manager/
 - Paginated task lists with sort order (`createdAt`, `dueDate`, `priority`, `status`, `title`).
 - Standardized API envelope response (`{ success, data, message, error, pagination }`).
 - Dark mode responsive UI with React 19, Tailwind CSS, TanStack Query, and React Hook Form.
+- Secure task attachments with authenticated upload, download, and removal.
+- Relative reminders using seconds, minutes, hours, or days before a task is due.
 
 ### Bonus Features
 - Automatic in-memory MongoDB fallback test server for Postman / Newman verification.
 - GitHub Actions CI workflow for automated linting, typechecking, and testing.
 - Top-level React `ErrorBoundary` component.
+- Kanban board with drag-and-drop status changes.
+- Task attachments with persistent file storage.
+- Relative in-app and browser reminders.
+- Docker Compose setup for the client, API, MongoDB, and uploaded files.
 
 ---
 
@@ -95,6 +102,7 @@ task-manager/
 | `JWT_SECRET` | Server | Secret key for signing JWT tokens | Required in production |
 | `JWT_EXPIRES_IN` | Server | JWT token expiration duration | `7d` |
 | `CLIENT_URL` | Server | Allowed CORS Origin URL | `http://localhost:3000` |
+| `UPLOAD_DIR` | Server | Persistent task attachment directory | `uploads` |
 | `VITE_API_BASE_URL` | Client | API Base URL for frontend Axios | `/api` |
 
 ---
@@ -127,7 +135,7 @@ npm run lint
 # Run TypeScript compiler check
 npm run typecheck
 
-# Run full Vitest test suite (32 server + 9 client = 41 tests)
+# Run full Vitest test suite (34 server + 31 client = 65 tests)
 npm run test
 
 # Run production build
@@ -145,6 +153,23 @@ npx --yes newman run Task-Manager.postman_collection.json -e Local.postman_envir
 npm run dev
 ```
 
+### 6. Running with Docker
+
+Docker Compose runs the React/Nginx client, Express API, and MongoDB. Database data
+and uploaded attachments are persisted in named volumes.
+
+```bash
+cp .env.example .env
+# Replace JWT_SECRET in .env with a long random value.
+docker compose up --build
+```
+
+Open `http://localhost:3000`. Stop the stack with:
+
+```bash
+docker compose down
+```
+
 ---
 
 ## API Endpoints Summary
@@ -160,6 +185,9 @@ npm run dev
 | `GET` | `/api/tasks/:id` | Get Task by ID (Owner-scoped) | Yes |
 | `PATCH` | `/api/tasks/:id` | Update Task (Owner-scoped) | Yes |
 | `DELETE` | `/api/tasks/:id` | Delete Task (Owner-scoped) | Yes |
+| `POST` | `/api/tasks/:id/attachments` | Upload up to 5 task attachments | Yes |
+| `GET` | `/api/tasks/:id/attachments/:attachmentId` | Download an owner-scoped attachment | Yes |
+| `DELETE` | `/api/tasks/:id/attachments/:attachmentId` | Remove an owner-scoped attachment | Yes |
 
 ---
 
@@ -168,13 +196,14 @@ npm run dev
 1. **Query-Level Security**: Ownership checks occur at the database query level (`Task.findOne({ _id, owner })`). Cross-user attempts return `404 Not Found`, eliminating timing side-channel attacks and TOCTOU vulnerabilities.
 2. **Password & Data Protection**: Mongoose `toJSON` transform automatically strips `password` and `__v` from JSON responses. Passwords are never logged.
 3. **Strict Client Input Handling**: Client-provided owner IDs are ignored; task ownership is strictly bound to `req.user.id`.
-4. **Deployment Status**: Not deployed (configured for local and assessment environments).
-5. **Test Credentials**: Not required (new reviewers can register freshly via UI or API).
+4. **Attachment Safety**: Downloads require JWT authentication and task ownership. Files use randomized stored names, an allowlist of file types, a 5 MB per-file limit, and a maximum of five files per task.
+5. **Deployment Status**: Not publicly deployed; Docker Compose provides a reproducible local deployment.
+6. **Test Credentials**: Not required (new reviewers can register freshly via UI or API).
 
 ---
 
 ## Submission Disclosures & Metrics
 
-- **Known Issues / Incomplete Items**: None. All core and bonus requirement criteria pass verification.
+- **Known Issues / Incomplete Items**: No public live deployment. Browser reminders require the app/browser to be running; closed-browser push delivery would require a push subscription service.
 - **Actual Time Spent**: ~6 hours.
 - **AI Tool Disclosure**: Built with Antigravity AI assistant pair programming guidance.

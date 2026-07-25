@@ -16,9 +16,19 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: string;
+  reminderAt?: string | null;
+  attachments?: TaskAttachment[];
   owner: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TaskAttachment {
+  _id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
 }
 
 export interface PaginationMeta {

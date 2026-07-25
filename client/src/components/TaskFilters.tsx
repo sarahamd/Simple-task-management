@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, RotateCcw, ArrowUpDown } from 'lucide-react';
+import { Search, RotateCcw, ArrowUpDown, SlidersHorizontal, ListChecks, CircleDotDashed, Clock3, CheckCircle2 } from 'lucide-react';
 import { ColorSelect, SelectOption } from './ColorSelect';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -33,10 +33,10 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
   const { t } = useLanguage();
 
   const statusFilterOptions: SelectOption[] = [
-    { value: '', label: t('allStatuses'), colorDot: 'bg-slate-400' },
-    { value: 'todo', label: t('statusTodo'), colorDot: 'bg-amber-500' },
-    { value: 'in_progress', label: t('statusInProgress'), colorDot: 'bg-blue-600' },
-    { value: 'done', label: t('statusCompleted'), colorDot: 'bg-emerald-600' },
+    { value: '', label: t('allStatuses'), icon: <ListChecks className="w-4 h-4 text-slate-400" /> },
+    { value: 'todo', label: t('statusTodo'), icon: <CircleDotDashed className="w-4 h-4 text-amber-500" /> },
+    { value: 'in_progress', label: t('statusInProgress'), icon: <Clock3 className="w-4 h-4 text-blue-500" /> },
+    { value: 'done', label: t('statusCompleted'), icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" /> },
   ];
 
   const priorityFilterOptions: SelectOption[] = [
@@ -57,65 +57,78 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
   const hasActiveFilters = search || status || priority || sortBy !== 'createdAt' || order !== 'desc';
 
   return (
-    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 mb-5 sm:mb-6 shadow-sm dark:shadow-lg space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+    <section className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-5 sm:mb-6 shadow-sm">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="inline-flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+          <span className="grid place-items-center w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400">
+            <SlidersHorizontal className="w-4 h-4" />
+          </span>
+          {t('filtersTitle')}
+        </h2>
+        {hasActiveFilters && (
+          <button
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-500/10 transition"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            {t('resetFilters')}
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_160px_160px_180px_auto] gap-3 items-end">
       {/* Search Input */}
-      <div className="relative flex-1">
-        <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('searchPlaceholder')}
-          className="w-full bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl pl-9 pr-3.5 rtl:pr-9 rtl:pl-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none shadow-xs transition duration-150"
-        />
+      <div>
+        <label htmlFor="task-search" className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Search</label>
+        <div className="relative">
+          <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+          <input
+            id="task-search"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('searchPlaceholder')}
+            className="w-full bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl pl-9 pr-3.5 rtl:pr-9 rtl:pl-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition duration-150"
+          />
+        </div>
       </div>
 
-      {/* Filters & Controls */}
-      <div className="flex flex-wrap items-center gap-2">
         {/* Status Filter */}
         <ColorSelect
+          label={t('statusFilterLabel')}
           options={statusFilterOptions}
           value={status}
           onChange={setStatus}
-          className="flex-1 sm:flex-none min-w-[105px] sm:min-w-[130px]"
+          className="min-w-0"
         />
 
         {/* Priority Filter */}
         <ColorSelect
+          label={t('priorityFilterLabel')}
           options={priorityFilterOptions}
           value={priority}
           onChange={setPriority}
-          className="flex-1 sm:flex-none min-w-[105px] sm:min-w-[130px]"
+          className="min-w-0"
         />
 
         {/* Sort Field */}
         <ColorSelect
+          label={t('sortFilterLabel')}
           options={sortByOptions}
           value={sortBy}
           onChange={setSortBy}
-          className="flex-1 sm:flex-none min-w-[115px] sm:min-w-[140px]"
+          className="min-w-0"
         />
 
         {/* Order Toggle */}
         <button
           onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 shadow-xs transition duration-150"
+          className="h-[42px] px-3 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition duration-150"
           title={order === 'asc' ? t('sortAscending') : t('sortDescending')}
         >
           <ArrowUpDown className="w-4 h-4" />
         </button>
 
-        {/* Reset Filters */}
-        {hasActiveFilters && (
-          <button
-            onClick={onReset}
-            className="p-2 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-200 dark:border-slate-700/60 shadow-xs transition duration-150"
-            title={t('resetFilters')}
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        )}
       </div>
-    </div>
+    </section>
   );
 };

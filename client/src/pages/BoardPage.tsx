@@ -7,7 +7,7 @@ import { BoardTaskCard } from '../components/BoardTaskCard';
 import { TaskModal, TaskFormData } from '../components/TaskModal';
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
 import { ColorSelect } from '../components/ColorSelect';
-import { Plus, LayoutGrid, Kanban, Search, RotateCcw, Loader2 } from 'lucide-react';
+import { Plus, LayoutGrid, Kanban, Search, RotateCcw, Loader2, CircleDotDashed, Clock3, CheckCircle2, SlidersHorizontal } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,6 +19,8 @@ interface ColumnConfig {
   headerBg: string;
   accentColor: string;
   borderColor: string;
+  icon: React.FC<{ className?: string }>;
+  iconClass: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -30,6 +32,8 @@ const COLUMNS: ColumnConfig[] = [
     headerBg: 'bg-amber-600 text-white',
     accentColor: '#d97706',
     borderColor: 'border-amber-600',
+    icon: CircleDotDashed,
+    iconClass: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
   },
   {
     id: 'in_progress',
@@ -39,6 +43,8 @@ const COLUMNS: ColumnConfig[] = [
     headerBg: 'bg-blue-900 text-white',
     accentColor: '#1e3a8a',
     borderColor: 'border-blue-900',
+    icon: Clock3,
+    iconClass: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400',
   },
   {
     id: 'done',
@@ -48,6 +54,8 @@ const COLUMNS: ColumnConfig[] = [
     headerBg: 'bg-emerald-900 text-white',
     accentColor: '#064e3b',
     borderColor: 'border-emerald-900',
+    icon: CheckCircle2,
+    iconClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
   },
 ];
 
@@ -82,10 +90,11 @@ export const BoardPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async (formData: TaskFormData) => {
       const response = await api.post<ApiResponse<Task>>('/tasks', formData);
-      return response.data;
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
@@ -93,10 +102,11 @@ export const BoardPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<TaskFormData> }) => {
       const response = await api.patch<ApiResponse<Task>>(`/tasks/${id}`, data);
-      return response.data;
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
@@ -108,6 +118,7 @@ export const BoardPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
     },
   });
 
@@ -119,11 +130,38 @@ export const BoardPage: React.FC = () => {
   });
 
   const handleCreateOrUpdate = async (formData: TaskFormData) => {
+    const payload: TaskFormData = {
+      title: formData.title,
+      description: formData.description,
+      status: formData.status,
+      priority: formData.priority,
+      dueDate: formData.dueDate,
+      reminderAt: formData.reminderAt || '',
+    };
+
+    let savedTask: Task;
     if (editingTask) {
-      await updateMutation.mutateAsync({ id: editingTask._id, data: formData });
+      savedTask = await updateMutation.mutateAsync({ id: editingTask._id, data: payload });
     } else {
-      await createMutation.mutateAsync(formData);
+      savedTask = await createMutation.mutateAsync(payload);
     }
+
+    if (formData.newAttachments?.length) {
+      const attachments = new FormData();
+      formData.newAttachments.forEach((file) => attachments.append('attachments', file));
+      await api.post(`/tasks/${savedTask._id}/attachments`, attachments, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    }
+  };
+
+  const handleRemoveAttachment = async (taskId: string, attachmentId: string) => {
+    const response = await api.delete<ApiResponse<Task>>(
+      `/tasks/${taskId}/attachments/${attachmentId}`
+    );
+    setEditingTask(response.data.data);
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
   const handleDeleteClick = (id: string) => {
@@ -197,10 +235,10 @@ export const BoardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/60 dark:from-slate-950 dark:via-slate-950 dark:to-purple-950/20 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
       <Navbar />
 
-      <main className="flex-1 max-w-[1700px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 flex flex-col">
         {/* Top Header & View Switcher Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
@@ -242,20 +280,44 @@ export const BoardPage: React.FC = () => {
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-3 mb-6 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('searchPlaceholder')}
-              className="w-full bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl pl-9 pr-3.5 rtl:pr-9 rtl:pl-3.5 py-1.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none"
-            />
+        <div className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="inline-flex items-center gap-2 text-sm font-bold">
+              <span className="grid place-items-center w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                <SlidersHorizontal className="w-4 h-4" />
+              </span>
+              {t('filtersTitle')}
+            </h2>
+            {(search || priority) && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setPriority('');
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {t('resetFilters')}
+              </button>
+            )}
           </div>
-
-          <div className="flex items-center gap-2">
+          <div className="grid sm:grid-cols-[minmax(220px,1fr)_180px] gap-3 items-end">
+            <div>
+              <label htmlFor="board-search" className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  id="board-search"
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('searchPlaceholder')}
+                  className="w-full bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl pl-9 pr-3.5 rtl:pr-9 rtl:pl-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none"
+                />
+              </div>
+            </div>
             <ColorSelect
+              label={t('priorityFilterLabel')}
               options={[
                 { value: '', label: t('allPriorities'), colorDot: 'bg-slate-400' },
                 { value: 'low', label: t('priorityLow'), colorDot: 'bg-slate-400' },
@@ -264,21 +326,8 @@ export const BoardPage: React.FC = () => {
               ]}
               value={priority}
               onChange={setPriority}
-              className="min-w-[130px] sm:min-w-[150px]"
+              className="min-w-0"
             />
-
-            {(search || priority) && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setPriority('');
-                }}
-                className="p-1.5 text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 bg-slate-100 dark:bg-slate-800 rounded-lg transition"
-                title={t('resetFilters')}
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
 
@@ -307,6 +356,7 @@ export const BoardPage: React.FC = () => {
             {COLUMNS.map((col) => {
               const columnTasks = filteredTasks.filter((t) => col.statuses.includes(t.status));
               const isOver = dragOverColumnId === col.id;
+              const ColumnIcon = col.icon;
 
               return (
                 <div
@@ -314,27 +364,29 @@ export const BoardPage: React.FC = () => {
                   onDragOver={(e) => handleDragOver(e, col.id)}
                   onDragLeave={(e) => handleDragLeave(e, col.id)}
                   onDrop={(e) => handleDrop(e, col.id)}
-                  className={`flex flex-col rounded-xl bg-slate-200/60 dark:bg-slate-900/60 border-2 transition-all duration-150 min-h-[550px] ${
+                  className={`flex flex-col rounded-2xl bg-slate-100/80 dark:bg-slate-900/60 border transition-all duration-150 min-h-[500px] ${
                     isOver
                       ? `${col.borderColor} bg-indigo-50/50 dark:bg-indigo-950/20 shadow-lg scale-[1.01]`
-                      : 'border-transparent'
+                      : 'border-slate-200 dark:border-slate-800'
                   }`}
                 >
-                  {/* Column Header Banner (Styled matching the reference image) */}
-                  <div className={`flex items-center justify-between px-4 py-2.5 rounded-t-xl font-bold shadow-xs ${col.headerBg}`}>
-                    <span className="text-sm tracking-wide">
-                      {t(col.titleKey as any) || col.defaultTitle}
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 font-bold">
+                    <span className="inline-flex items-center gap-2 text-sm">
+                      <span className={`grid place-items-center w-7 h-7 rounded-lg ${col.iconClass}`}>
+                        <ColumnIcon className="w-4 h-4" />
+                      </span>
+                      {t(col.titleKey) || col.defaultTitle}
                     </span>
-                    <span className="w-6 h-6 rounded-full bg-white text-slate-900 font-extrabold text-xs flex items-center justify-center shadow-sm">
+                    <span className="min-w-6 h-6 px-1.5 rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-extrabold text-xs flex items-center justify-center">
                       {columnTasks.length}
                     </span>
                   </div>
 
                   {/* + Add Task button inside column header area */}
-                  <div className="p-2 border-b border-slate-300/50 dark:border-slate-800">
+                  <div className="px-3 pb-3">
                     <button
                       onClick={() => handleAddNewTaskForColumn(col.id)}
-                      className="w-full py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-300/50 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center gap-1 transition cursor-pointer"
+                      className="w-full py-2 text-xs font-semibold text-purple-600 dark:text-purple-400 bg-white dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-purple-500/10 border border-dashed border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       {t('addTask')}
@@ -381,6 +433,7 @@ export const BoardPage: React.FC = () => {
             status: defaultStatusForNewTask,
           } as Task)
         }
+        onRemoveAttachment={handleRemoveAttachment}
       />
 
       {/* Delete Confirmation Modal */}

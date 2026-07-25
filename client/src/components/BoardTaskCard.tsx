@@ -1,7 +1,20 @@
-import React from 'react';
-import { Task } from '../types';
-import { Flag, CheckSquare, Paperclip, MessageSquare, Edit2, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Task, TaskStatus } from '../types';
+import {
+  Bell,
+  CalendarClock,
+  CheckCircle2,
+  ChevronUp,
+  CircleDotDashed,
+  Clock3,
+  ChevronDown,
+  Edit2,
+  Flag,
+  Paperclip,
+  Trash2,
+} from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useDescriptionOverflow } from '../hooks/useDescriptionOverflow';
 
 interface BoardTaskCardProps {
   task: Task;
@@ -15,6 +28,18 @@ interface BoardTaskCardProps {
   onDragStart: (e: React.DragEvent, taskId: string) => void;
 }
 
+const statusIcons: Record<TaskStatus, React.FC<{ className?: string }>> = {
+  todo: CircleDotDashed,
+  in_progress: Clock3,
+  done: CheckCircle2,
+};
+
+const statusKeys: Record<TaskStatus, 'statusTodo' | 'statusInProgress' | 'statusCompleted'> = {
+  todo: 'statusTodo',
+  in_progress: 'statusInProgress',
+  done: 'statusCompleted',
+};
+
 export const BoardTaskCard: React.FC<BoardTaskCardProps> = ({
   task,
   statusTheme,
@@ -22,128 +47,126 @@ export const BoardTaskCard: React.FC<BoardTaskCardProps> = ({
   onDelete,
   onDragStart,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const { descriptionRef, hasMoreContent } = useDescriptionOverflow(task.description || '', isDescriptionExpanded);
+  const StatusIcon = statusIcons[task.status];
 
   const formattedDate = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString('en-US', {
-        day: '2-digit',
+    ? new Date(task.dueDate).toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', {
+        day: 'numeric',
         month: 'short',
-        year: 'numeric',
-      }).toUpperCase()
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
     : t('noDueDate');
 
-  // Format task ID for display like Task-101
-  const shortId = `Task-${task._id.slice(-3).toUpperCase()}`;
+  const formattedReminder = task.reminderAt
+    ? new Date(task.reminderAt).toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : null;
 
-  // Priority Flag Color
+  const shortId = `Task-${task._id.slice(-3).toUpperCase()}`;
   const flagColorClass =
     task.priority === 'high'
-      ? 'text-red-500 fill-red-500/20'
+      ? 'text-rose-500 fill-rose-500/20'
       : task.priority === 'medium'
-      ? 'text-amber-500 fill-amber-500/20'
-      : 'text-slate-400 fill-slate-400/20';
-
-  // Deterministic user avatar color
-  const avatarColors = [
-    'bg-sky-500 text-white',
-    'bg-amber-600 text-white',
-    'bg-indigo-600 text-white',
-    'bg-rose-600 text-white',
-    'bg-emerald-600 text-white',
-    'bg-purple-600 text-white',
-  ];
-  const charCodeSum = task.owner ? task.owner.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
-  const avatarBg = avatarColors[charCodeSum % avatarColors.length];
+        ? 'text-amber-500 fill-amber-500/20'
+        : 'text-slate-400 fill-slate-400/20';
 
   return (
-    <div
+    <article
       draggable
-      onDragStart={(e) => onDragStart(e, task._id)}
-      className={`group relative bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm hover:shadow-md border-t-4 transition-all duration-200 cursor-grab active:cursor-grabbing border-slate-200 dark:border-slate-800`}
-      style={{ borderTopColor: statusTheme.accentColor }}
+      onDragStart={(event) => onDragStart(event, task._id)}
+      className="group relative min-w-0 overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm hover:shadow-lg border border-slate-200 dark:border-slate-800 transition-all duration-200 cursor-grab active:cursor-grabbing"
+      style={{ borderInlineStartWidth: 4, borderInlineStartColor: statusTheme.accentColor }}
     >
-      {/* Top Section: Title & Flag & Quick Action buttons */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide truncate">
-          {task.title}
-        </h3>
-        
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Flag className={`w-4 h-4 ${flagColorClass}`} />
-          
-          {/* Quick Edit/Delete on hover */}
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1">
-            <button
-              onClick={() => onEdit(task)}
-              className="p-1 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title={t('editTask')}
-              aria-label={t('editTask')}
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => onDelete(task._id)}
-              className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              title={t('deleteTask')}
-              aria-label={t('deleteTask')}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      <div className="flex items-start justify-between gap-3 mb-2.5">
+        <div className="min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{shortId}</span>
+          <h3 className={`mt-0.5 break-words [overflow-wrap:anywhere] text-sm font-bold leading-snug text-slate-900 dark:text-slate-100 ${task.status === 'done' ? 'line-through text-slate-400' : ''}`}>
+            {task.title}
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Flag
+            className={`w-4 h-4 me-1 ${flagColorClass}`}
+            aria-label={t(task.priority === 'high' ? 'priorityHigh' : task.priority === 'medium' ? 'priorityMedium' : 'priorityLow')}
+          />
+          <button
+            onClick={() => onEdit(task)}
+            className="p-1.5 text-slate-400 hover:text-purple-600 rounded-lg hover:bg-purple-50 dark:hover:bg-slate-800 transition"
+            title={t('editTask')}
+            aria-label={t('editTask')}
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(task._id)}
+            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 transition"
+            title={t('deleteTask')}
+            aria-label={t('deleteTask')}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Description preview if present */}
       {task.description && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
-          {task.description}
-        </p>
+        <div className="min-w-0 overflow-hidden mb-3">
+          <p ref={descriptionRef} className={`break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-xs text-slate-500 dark:text-slate-400 leading-relaxed ${isDescriptionExpanded ? 'max-h-36 overflow-y-auto overscroll-contain pe-2' : 'line-clamp-2'}`}>
+            {task.description}
+          </p>
+          {(hasMoreContent || isDescriptionExpanded) && (
+            <button
+              type="button"
+              onClick={() => setIsDescriptionExpanded((value) => !value)}
+              className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition"
+              aria-label={isDescriptionExpanded ? t('showLess') : t('seeMore')}
+            >
+              <span>{isDescriptionExpanded ? t('showLess') : t('seeMore')}</span>
+              {isDescriptionExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Middle Section: Avatar & Indicators */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {/* User avatar */}
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-xs ${avatarBg}`}>
-            {task.title ? task.title.charAt(0).toUpperCase() : 'U'}
-          </div>
-          {/* Task ID tag */}
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            {shortId}
-          </span>
-        </div>
-
-        {/* Status badges: checklist, attachments, comments */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-          <span className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-            <CheckSquare className="w-3 h-3 text-sky-500" />
-            01
-          </span>
-          <span className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-            <Paperclip className="w-3 h-3 text-sky-500" />
-            01
-          </span>
-          <span className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-            <MessageSquare className="w-3 h-3 text-sky-500" />
-            02
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom Section: Color bars on left & Due Date on right */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/60">
-        {/* Color indicator bars */}
-        <div className="flex items-center gap-1">
-          <span className="w-4 h-1 rounded-full bg-lime-500"></span>
-          <span className="w-4 h-1 rounded-full bg-sky-400"></span>
-          <span className="w-4 h-1 rounded-full bg-amber-700"></span>
-        </div>
-
-        {/* Red due date text */}
-        <span className="text-xs font-bold text-rose-600 dark:text-rose-400 tracking-tight">
-          {formattedDate}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+          <StatusIcon className="w-3.5 h-3.5" />
+          {t(statusKeys[task.status])}
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 capitalize">
+          <Flag className={`w-3 h-3 ${flagColorClass}`} />
+          {t(task.priority === 'high' ? 'priorityHigh' : task.priority === 'medium' ? 'priorityMedium' : 'priorityLow')}
         </span>
       </div>
-    </div>
+
+      <div className="space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-3 text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-1.5">
+          <CalendarClock className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+          <span>{formattedDate}</span>
+        </div>
+        {formattedReminder && (
+          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+            <Bell className="w-3.5 h-3.5 shrink-0" />
+            <span>{formattedReminder}</span>
+          </div>
+        )}
+        {!!task.attachments?.length && (
+          <div className="flex items-center gap-1.5">
+            <Paperclip className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+            <span>{task.attachments.length} {t('attachmentsLabel').toLowerCase()}</span>
+          </div>
+        )}
+      </div>
+    </article>
   );
 };

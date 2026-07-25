@@ -10,7 +10,9 @@
     "typecheck": "npm run typecheck --prefix server && npm run typecheck --prefix client",
     "test": "npm run test:server && npm run test:client",
     "test:server": "npm run test --prefix server",
-    "test:client": "npm run test --prefix client"
+    "test:client": "npm run test --prefix client",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

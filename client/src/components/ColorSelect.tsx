@@ -5,6 +5,7 @@ export interface SelectOption {
   value: string;
   label: string;
   colorDot?: string;
+  icon?: React.ReactNode;
   badgeBg?: string;
   badgeText?: string;
   badgeBorder?: string;
@@ -75,11 +76,14 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 flex items-center justify-between shadow-xs transition duration-150 cursor-pointer gap-2"
+        className="w-full bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 flex items-center justify-between shadow-xs transition duration-150 cursor-pointer gap-2"
         aria-expanded={isOpen}
       >
         <div className="flex items-center gap-2 truncate">
-          {selectedOption?.colorDot && (
+          {selectedOption?.icon && (
+            <span className="shrink-0 flex items-center justify-center">{selectedOption.icon}</span>
+          )}
+          {selectedOption?.colorDot && !selectedOption?.icon && (
             <span className={`w-2.5 h-2.5 rounded-full ${selectedOption.colorDot} shrink-0`} />
           )}
           <span className="truncate font-medium">
@@ -88,7 +92,7 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
         </div>
         <ChevronDown
           className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${
-            isOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''
+            isOpen ? 'rotate-180 text-purple-600 dark:text-purple-400' : ''
           }`}
         />
       </button>
@@ -108,17 +112,20 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
                 }}
                 className={`w-full px-3 py-2 text-xs sm:text-sm flex items-center justify-between transition text-left rtl:text-right cursor-pointer ${
                   isSelected
-                    ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-200 font-semibold'
+                    ? 'bg-purple-50 dark:bg-purple-600/30 text-purple-700 dark:text-purple-200 font-semibold'
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  {option.colorDot && (
+                  {option.icon && (
+                    <span className="shrink-0 flex items-center justify-center">{option.icon}</span>
+                  )}
+                  {option.colorDot && !option.icon && (
                     <span className={`w-2.5 h-2.5 rounded-full ${option.colorDot} shrink-0`} />
                   )}
                   <span className="truncate">{option.label}</span>
                 </div>
-                {isSelected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />}
+                {isSelected && <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />}
               </button>
             );
           })}

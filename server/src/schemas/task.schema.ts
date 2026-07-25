@@ -6,6 +6,15 @@ const startOfToday = () => {
   return date;
 };
 
+const optionalDateTime = z
+  .union([
+    z.null(),
+    z.literal(''),
+    z.string().refine((value) => !Number.isNaN(new Date(value).getTime()), 'Please enter a valid reminder date'),
+  ])
+  .optional()
+  .nullable();
+
 export const taskStatusEnum = z.enum(['todo', 'in_progress', 'done'], {
   errorMap: (issue) => {
     if (issue.code === 'invalid_type' && issue.received === 'undefined') {
@@ -67,6 +76,8 @@ export const createTaskSchema = z
         const d = new Date(value);
         return d >= startOfToday();
       }, 'Due date cannot be in the past'),
+
+    reminderAt: optionalDateTime,
   })
   .strict();
 
@@ -80,6 +91,8 @@ export const updateTaskSchema = z
       .min(1, 'Title is required')
       .max(120, 'Title must not exceed 120 characters')
       .optional(),
+
+    reminderAt: optionalDateTime,
 
     description: z
       .string({
@@ -114,6 +127,11 @@ export const taskIdParamSchema = z.object({
   id: z
     .string({ required_error: 'Task ID is required' })
     .regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format'),
+});
+
+export const taskAttachmentParamSchema = z.object({
+  id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format'),
+  attachmentId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid attachment ID format'),
 });
 
 export const queryTaskSchema = z.object({

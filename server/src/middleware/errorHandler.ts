@@ -2,10 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { AppError } from '../utils/AppError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import multer from 'multer';
 
 interface CustomError extends Partial<Error> {
   statusCode?: number;
-  code?: number;
+  code?: number | string;
   path?: string;
   keyValue?: Record<string, unknown>;
 }
@@ -23,6 +24,16 @@ export const errorHandler = (
       message: e.message,
     }));
     res.status(400).json(ApiResponse.validationError('Validation failed', formattedErrors));
+    return;
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Attachment must be 5 MB or smaller'
+      : err.code === 'LIMIT_FILE_COUNT'
+        ? 'A maximum of 5 attachments can be uploaded'
+        : err.message;
+    res.status(400).json(ApiResponse.error(message));
     return;
   }
 

@@ -421,4 +421,48 @@ describe('Task API & Complete Backend Validation', () => {
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
   });
+
+  it('21. Attachments are uploaded, owner-protected, downloaded, and removed', async () => {
+    const createRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Task with attachment',
+        description: 'Attachment integration test',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+    const taskId = createRes.body.data._id;
+
+    const uploadRes = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .attach('attachments', Buffer.from('private task notes'), {
+        filename: 'notes.txt',
+        contentType: 'text/plain',
+      });
+
+    expect(uploadRes.status).toBe(201);
+    expect(uploadRes.body.data.attachments).toHaveLength(1);
+    expect(uploadRes.body.data.attachments[0].originalName).toBe('notes.txt');
+    const attachmentId = uploadRes.body.data.attachments[0]._id;
+
+    const ownerDownload = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${tokenUserA}`);
+    expect(ownerDownload.status).toBe(200);
+    expect(ownerDownload.headers['content-disposition']).toContain('notes.txt');
+
+    const otherUserDownload = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${tokenUserB}`);
+    expect(otherUserDownload.status).toBe(404);
+
+    const deleteRes = await request(app)
+      .delete(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${tokenUserA}`);
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.data.attachments).toHaveLength(0);
+  });
 });

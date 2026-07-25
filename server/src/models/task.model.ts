@@ -3,6 +3,15 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
+export interface ITaskAttachment {
+  _id: mongoose.Types.ObjectId;
+  originalName: string;
+  storedName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: Date;
+}
+
 export interface ITask extends Document {
   _id: mongoose.Types.ObjectId;
   title: string;
@@ -10,6 +19,8 @@ export interface ITask extends Document {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: Date;
+  reminderAt?: Date | null;
+  attachments: ITaskAttachment[];
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +54,19 @@ const taskSchema = new Schema<ITask>(
       type: Date,
       required: [true, 'Due date is required'],
     },
+    reminderAt: {
+      type: Date,
+      default: null,
+    },
+    attachments: [
+      {
+        originalName: { type: String, required: true, maxlength: 255 },
+        storedName: { type: String, required: true },
+        mimeType: { type: String, required: true },
+        size: { type: Number, required: true, min: 0 },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
     owner: {
       type: Schema.Types.ObjectId,
       ref: 'User',
