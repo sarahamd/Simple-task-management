@@ -2,9 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark light;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@media (max-width: 380px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+.dark body,
+html.dark body,
+body.dark {
+  background-color: #020617;
   color: #f8fafc;
 }
+
+.light body,
+html.light body,
+body.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light, .light {
+  color-scheme: light;
+}
+
+html.dark, .dark {
+  color-scheme: dark;
+}
+
+/* Native select options styling - sleek slate-800 instead of pitch black */
+select option {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+html.dark select option,
+.dark select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+html.light select option,
+.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Custom Webkit date picker indicator styling */
+input[type="date"] {
+  color-scheme: light;
+}
+
+html.dark input[type="date"],
+.dark input[type="date"] {
+  color-scheme: dark;
+  background-color: rgba(30, 41, 59, 0.7);
+  color: #f8fafc;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+html.light input[type="date"]::-webkit-calendar-picker-indicator,
+.light input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.25) sepia(1) saturate(5) hue-rotate(220deg);
+}
+
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9) brightness(1.2);
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.85;
+  transform: scale(1.1);
+}
+

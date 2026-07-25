@@ -17,7 +17,7 @@ describe('Auth Forms UI & Validation', () => {
 
     expect(screen.getByPlaceholderText('you@example.com')).toBeDefined();
     expect(screen.getByPlaceholderText('••••••••')).toBeDefined();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /login|sign in/i })).toBeDefined();
   });
 
   it('LoginPage shows validation error when email is invalid', async () => {
@@ -30,7 +30,7 @@ describe('Auth Forms UI & Validation', () => {
     );
 
     const emailInput = screen.getByPlaceholderText('you@example.com');
-    const submitBtn = screen.getByRole('button', { name: /sign in/i });
+    const submitBtn = screen.getByRole('button', { name: /login|sign in/i });
 
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.blur(emailInput);

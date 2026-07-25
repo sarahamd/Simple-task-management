@@ -1,5 +1,5 @@
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface User {
   _id: string;
@@ -15,7 +15,7 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate?: string;
+  dueDate: string;
   owner: string;
   createdAt: string;
   updatedAt: string;
@@ -28,11 +28,17 @@ export interface PaginationMeta {
   totalPages: number;
 }
 
+export interface ApiErrorItem {
+  field: string;
+  message: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data: T;
   pagination?: PaginationMeta;
+  errors?: ApiErrorItem[];
   error?: {
     message: string;
     code?: string;

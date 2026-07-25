@@ -10,8 +10,15 @@ export interface ApiSuccessResponse<T> {
   };
 }
 
+export interface ApiErrorItem {
+  field: string;
+  message: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
+  message?: string;
+  errors?: ApiErrorItem[];
   error: {
     message: string;
     code?: string;
@@ -39,7 +46,20 @@ export class ApiResponse {
     if (details !== undefined) errorPayload.details = details;
     return {
       success: false,
+      message,
       error: errorPayload,
+    };
+  }
+
+  static validationError(message: string, errors: ApiErrorItem[]): ApiErrorResponse {
+    return {
+      success: false,
+      message: message || 'Validation failed',
+      errors,
+      error: {
+        message: message || 'Validation failed',
+        details: errors,
+      },
     };
   }
 }

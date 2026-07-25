@@ -17,6 +17,7 @@ export class TaskService {
   static async createTask(userId: string, input: CreateTaskInput): Promise<ITask> {
     const task = await Task.create({
       ...input,
+      dueDate: new Date(input.dueDate),
       owner: new mongoose.Types.ObjectId(userId),
     });
     return task;
@@ -87,13 +88,18 @@ export class TaskService {
       throw new AppError('Invalid task ID format', 400);
     }
 
+    const updateData: Record<string, unknown> = { ...input };
+    if (input.dueDate) {
+      updateData.dueDate = new Date(input.dueDate);
+    }
+
     // STRICT ENFORCEMENT: Filter by both _id and owner in single query
     const task = await Task.findOneAndUpdate(
       {
         _id: new mongoose.Types.ObjectId(taskId),
         owner: new mongoose.Types.ObjectId(userId),
       },
-      { $set: input },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 

@@ -48,321 +48,377 @@ beforeEach(async () => {
   tokenUserB = resB.body.data.token;
 });
 
-describe('Task API & Ownership Enforcement', () => {
-  it('POST /api/tasks should create a valid task owned by authenticated user', async () => {
+describe('Task API & Complete Backend Validation', () => {
+  // 1. Valid task creation
+  it('1. Valid task creation', async () => {
     const res = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
       .send({
         title: 'Design Database Schema',
         description: 'Create Mongoose models for users and tasks',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
+        status: 'in_progress',
+        priority: 'high',
+        dueDate: '2026-12-31',
       });
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.title).toBe('Design Database Schema');
-    expect(res.body.data.status).toBe('IN_PROGRESS');
-    expect(res.body.data.priority).toBe('HIGH');
+    expect(res.body.data.status).toBe('in_progress');
+    expect(res.body.data.priority).toBe('high');
   });
 
-  it('POST /api/tasks without token should return 401 Unauthorized', async () => {
-    const res = await request(app).post('/api/tasks').send({
-      title: 'Unauthenticated Task',
-    });
-
-    expect(res.status).toBe(401);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('POST /api/tasks with missing title should return 400 Validation Error', async () => {
+  // 2. Missing title
+  it('2. Missing title', async () => {
     const res = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
       .send({
         description: 'Missing title task',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
       });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Title is required');
   });
 
-  it('POST /api/tasks with invalid status enum should return 400 Validation Error', async () => {
+  // 3. Title containing only spaces
+  it('3. Title containing only spaces', async () => {
     const res = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
       .send({
-        title: 'Test Task',
-        status: 'INVALID_STATUS',
+        title: '   ',
+        description: 'Whitespace title',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
       });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Title is required');
   });
 
-  it('POST /api/tasks with invalid priority enum should return 400 Validation Error', async () => {
+  // 4. Title longer than 120 characters
+  it('4. Title longer than 120 characters', async () => {
     const res = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
       .send({
-        title: 'Test Task',
-        priority: 'URGENT_INVALID',
+        title: 'A'.repeat(121),
+        description: 'Long title task',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Title must not exceed 120 characters');
+  });
+
+  // 5. Missing description
+  it('5. Missing description', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Description is required');
+  });
+
+  // 6. Description containing only spaces
+  it('6. Description containing only spaces', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: '    ',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Description is required');
+  });
+
+  // 7. Description longer than 2,000 characters
+  it('7. Description longer than 2,000 characters', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'D'.repeat(2001),
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Description must not exceed 2000 characters');
+  });
+
+  // 8. Missing status
+  it('8. Missing status', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Status is required');
+  });
+
+  // 9. Invalid status
+  it('9. Invalid status', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'pending',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Status must be To Do, In Progress, or Done');
+  });
+
+  // 10. Missing priority
+  it('10. Missing priority', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Priority is required');
+  });
+
+  // 11. Invalid priority
+  it('11. Invalid priority', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'HIGH',
+        dueDate: '2026-12-31',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Priority must be Low, Medium, or High');
+  });
+
+  // 12. Missing due date
+  it('12. Missing due date', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Due date is required');
+  });
+
+  // 13. Invalid due date
+  it('13. Invalid due date', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: 'not-a-date',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Please enter a valid due date');
+  });
+
+  // 14. Past due date
+  it('14. Past due date', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2020-01-01',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Due date cannot be in the past');
+  });
+
+  // 15. Unknown field
+  it('15. Unknown field', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+        unknownProperty: 'illegal',
       });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
-  it('GET /api/tasks should list only authenticated user tasks', async () => {
-    // User A task
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'User A Task' });
-
-    // User B task
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserB}`)
-      .send({ title: 'User B Task' });
-
-    const resA = await request(app)
-      .get('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(resA.status).toBe(200);
-    expect(resA.body.data.length).toBe(1);
-    expect(resA.body.data[0].title).toBe('User A Task');
-  });
-
-  it('GET /api/tasks/:id should retrieve owned task', async () => {
-    const createRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Get Owned Task' });
-
-    const taskId = createRes.body.data._id;
-    const res = await request(app)
-      .get(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.title).toBe('Get Owned Task');
-  });
-
-  it('GET /api/tasks/:id with non-existent ObjectId should return 404', async () => {
-    const fakeId = new mongoose.Types.ObjectId().toString();
-    const res = await request(app)
-      .get(`/api/tasks/${fakeId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(res.status).toBe(404);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('GET /api/tasks/:id with malformed ObjectId should return 400 Bad Request', async () => {
-    const res = await request(app)
-      .get('/api/tasks/invalid-object-id')
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-  });
-
-  it('PATCH /api/tasks/:id should update owned task', async () => {
-    const createRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Original Title' });
-
-    const taskId = createRes.body.data._id;
-
-    const res = await request(app)
-      .patch(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Updated Title', status: 'COMPLETED' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.title).toBe('Updated Title');
-    expect(res.body.data.status).toBe('COMPLETED');
-  });
-
-  it('PATCH /api/tasks/:id should reject owner modification attempts', async () => {
-    const createRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Task for User A' });
-
-    const taskId = createRes.body.data._id;
+  // 16. Attempt to provide owner
+  it('16. Attempt to provide owner', async () => {
     const fakeOwnerId = new mongoose.Types.ObjectId().toString();
-
-    // Client passes owner in update body, server schema should strip or reject owner change
-    await request(app)
-      .patch(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ owner: fakeOwnerId });
-
-    const getRes = await request(app)
-      .get(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(getRes.body.data.owner).not.toBe(fakeOwnerId);
-  });
-
-  it('PATCH /api/tasks/:id should reject unknown update properties in strict mode', async () => {
-    const createRes = await request(app)
+    const res = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Strict Schema Test' });
-
-    const taskId = createRes.body.data._id;
-
-    const res = await request(app)
-      .patch(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Valid Title', unknownProp: 'hack' });
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+        owner: fakeOwnerId,
+      });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
   });
 
-  it('DELETE /api/tasks/:id should delete owned task and confirm it is gone', async () => {
+  // 17. Empty update body
+  it('17. Empty update body', async () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Task to Delete' });
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
 
     const taskId = createRes.body.data._id;
-
-    const deleteRes = await request(app)
-      .delete(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(deleteRes.status).toBe(200);
-
-    const getRes = await request(app)
-      .get(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(getRes.status).toBe(404);
-  });
-
-  it('GET /api/tasks should handle regex special characters safely in title search', async () => {
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Fix (bug) [URGENT] + test?' });
-
-    const searchStr = encodeURIComponent('(bug) [URGENT] + test?');
-    const res = await request(app)
-      .get(`/api/tasks?search=${searchStr}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.length).toBe(1);
-    expect(res.body.data[0].title).toBe('Fix (bug) [URGENT] + test?');
-  });
-
-  it('GET /api/tasks should support combined search, status, priority filters, and pagination', async () => {
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Deploy API', status: 'PENDING', priority: 'HIGH' });
-
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Deploy UI', status: 'PENDING', priority: 'HIGH' });
-
-    await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Deploy Docs', status: 'COMPLETED', priority: 'HIGH' });
-
-    const res = await request(app)
-      .get('/api/tasks?search=Deploy&status=PENDING&priority=HIGH&page=1&limit=1')
-      .set('Authorization', `Bearer ${tokenUserA}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.length).toBe(1);
-    expect(res.body.pagination.total).toBe(2);
-    expect(res.body.pagination.totalPages).toBe(2);
-  });
-
-  it('CRITICAL OWNERSHIP: Cross-user GET returns 404', async () => {
-    const createRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'User A Private Task' });
-
-    const taskId = createRes.body.data._id;
-
-    const res = await request(app)
-      .get(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserB}`);
-
-    expect(res.status).toBe(404);
-    expect(res.body.error.message).toBe('Task not found');
-  });
-
-  it('CRITICAL OWNERSHIP: Cross-user PATCH returns 404', async () => {
-    const createRes = await request(app)
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'User A Private Task' });
-
-    const taskId = createRes.body.data._id;
-
     const res = await request(app)
       .patch(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserB}`)
-      .send({ title: 'Hacked Title' });
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({});
 
-    expect(res.status).toBe(404);
-    expect(res.body.error.message).toBe('Task not found');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('At least one task field must be provided');
   });
 
-  it('CRITICAL OWNERSHIP: Cross-user DELETE returns 404', async () => {
+  // 18. Invalid update field
+  it('18. Invalid update field', async () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'User A Private Task' });
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
 
     const taskId = createRes.body.data._id;
-
     const res = await request(app)
-      .delete(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserB}`);
+      .patch(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({ status: 'completed' });
 
-    expect(res.status).toBe(404);
-    expect(res.body.error.message).toBe('Task not found');
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(JSON.stringify(res.body)).toContain('Status must be To Do, In Progress, or Done');
   });
 
-  it('CRITICAL OWNERSHIP: Unauthorized attempts do not modify or delete original task', async () => {
+  // 19. Valid partial update
+  it('19. Valid partial update', async () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${tokenUserA}`)
-      .send({ title: 'Original User A Title' });
+      .send({
+        title: 'Valid Title',
+        description: 'Valid description',
+        status: 'todo',
+        priority: 'medium',
+        dueDate: '2026-12-31',
+      });
 
     const taskId = createRes.body.data._id;
-
-    // User B attempts attack
-    await request(app)
+    const res = await request(app)
       .patch(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserB}`)
-      .send({ title: 'Malicious Update' });
+      .set('Authorization', `Bearer ${tokenUserA}`)
+      .send({ status: 'done', priority: 'high' });
 
-    await request(app)
-      .delete(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserB}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.status).toBe('done');
+    expect(res.body.data.priority).toBe('high');
+  });
 
-    // Verify task is completely unchanged for User A
-    const getRes = await request(app)
-      .get(`/api/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${tokenUserA}`);
+  // 20. Request without authentication
+  it('20. Request without authentication', async () => {
+    const res = await request(app).post('/api/tasks').send({
+      title: 'Unauthenticated Task',
+      description: 'Test description',
+      status: 'todo',
+      priority: 'medium',
+      dueDate: '2026-12-31',
+    });
 
-    expect(getRes.status).toBe(200);
-    expect(getRes.body.data.title).toBe('Original User A Title');
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
   });
 });

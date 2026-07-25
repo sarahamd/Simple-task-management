@@ -49,6 +49,7 @@ describe('Frontend UI & Component Flow', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Title is required')).toBeDefined();
+      expect(screen.getByText('Due date is required')).toBeDefined();
     });
   });
 

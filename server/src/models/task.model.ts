@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface ITask extends Document {
   _id: mongoose.Types.ObjectId;
@@ -9,7 +9,7 @@ export interface ITask extends Document {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate?: Date;
+  dueDate: Date;
   owner: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -21,26 +21,27 @@ const taskSchema = new Schema<ITask>(
       type: String,
       required: [true, 'Task title is required'],
       trim: true,
-      maxlength: [100, 'Title cannot exceed 100 characters'],
+      maxlength: [120, 'Title cannot exceed 120 characters'],
     },
     description: {
       type: String,
+      required: [true, 'Task description is required'],
       trim: true,
-      default: '',
-      maxlength: [500, 'Description cannot exceed 500 characters'],
+      maxlength: [2000, 'Description cannot exceed 2000 characters'],
     },
     status: {
       type: String,
-      enum: ['PENDING', 'IN_PROGRESS', 'COMPLETED'],
-      default: 'PENDING',
+      enum: ['todo', 'in_progress', 'done'],
+      default: 'todo',
     },
     priority: {
       type: String,
-      enum: ['LOW', 'MEDIUM', 'HIGH'],
-      default: 'MEDIUM',
+      enum: ['low', 'medium', 'high'],
+      default: 'medium',
     },
     dueDate: {
       type: Date,
+      required: [true, 'Due date is required'],
     },
     owner: {
       type: Schema.Types.ObjectId,

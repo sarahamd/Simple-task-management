@@ -8,9 +8,10 @@ describe('TaskCard Component', () => {
     _id: 'task-123',
     title: 'Test Task Title',
     description: 'Test task description detail',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
+    status: 'in_progress',
+    priority: 'high',
     owner: 'user-123',
+    dueDate: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
