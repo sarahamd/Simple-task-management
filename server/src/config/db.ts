@@ -9,7 +9,7 @@ export const connectDB = async (uri?: string): Promise<void> => {
     }
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    process.exit(1);
+    throw error;
   }
 };
 
