@@ -6,7 +6,7 @@
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint src --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
